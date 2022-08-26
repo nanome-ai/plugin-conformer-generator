@@ -247,8 +247,8 @@ class ConformerGenerator(nanome.AsyncPluginInstance):
         new_complex = new_complex.convert_to_frames()
 
         for i, new_m in enumerate(new_complex.molecules):
-            new_m.associated['conf energy'] = str(sorted_conformers[i][1])
-            new_m.associated['conf rmsd'] = str(sorted_conformers[i][2])
+            new_m.associated['conf energy'] = str(round(sorted_conformers[i][1], 3))
+            new_m.associated['conf rmsd'] = str(round(sorted_conformers[i][2], 3))
             new_m.associated.update(old_data)
 
         new_complex.current_frame = 0
