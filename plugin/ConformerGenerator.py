@@ -18,6 +18,8 @@ MAX_ROTATABLE_BONDS = 20
 
 class ConformerGenerator(nanome.AsyncPluginInstance):
     def start(self):
+        self.set_plugin_list_button(self.PluginListButtonType.run, 'Open')
+
         self.selected_complex_index = None
         self.selected_ligand_index = None
         self.selected_complex = None
@@ -29,7 +31,6 @@ class ConformerGenerator(nanome.AsyncPluginInstance):
 
         self.create_menu()
         self.update_structure_list()
-        self.on_run()
 
     def on_run(self):
         self.menu.enabled = True
@@ -180,6 +181,8 @@ class ConformerGenerator(nanome.AsyncPluginInstance):
         input_sdf = tempfile.NamedTemporaryFile(dir=temp_dir.name, delete=False, suffix='.sdf')
         output_sdf = tempfile.NamedTemporaryFile(dir=temp_dir.name, delete=False, suffix='.sdf')
 
+        # get latest state of selected complex
+        [self.selected_complex] = await self.request_complexes([self.selected_complex_index])
         complex = self.selected_ligand or self.selected_complex
         old_data = {}
 
@@ -207,21 +210,28 @@ class ConformerGenerator(nanome.AsyncPluginInstance):
             return
 
         # save starting conformer
+        ref_mol = Chem.AddHs(mol, addCoords=True)
+        AllChem.UFFOptimizeMolecule(ref_mol)
+        ff = AllChem.UFFGetMoleculeForceField(ref_mol)
+        ref_energy = ff.CalcEnergy()
         ref_mol = Chem.RemoveHs(mol)
 
-        mol = Chem.AddHs(mol)
+        mol = Chem.AddHs(mol, addCoords=True)
         cids = AllChem.EmbedMultipleConfs(mol, numConfs=3*self.max_conformers)
 
+        # calc energies of conformers
         energies = []
         for cid in cids:
             AllChem.UFFOptimizeMolecule(mol, confId=cid)
             ff = AllChem.UFFGetMoleculeForceField(mol, confId=cid)
             energies.append(ff.CalcEnergy())
 
+        # sort conformers by energy
         mol = Chem.RemoveHs(mol)
         sorted_cids = sorted(cids, key=lambda id: energies[id])
         writer = Chem.SDWriter(output_sdf.name)
 
+        # filter conformers, prioritizing lower energy and ignoring similar conformers
         kept_confs_and_data = []
         for cid in sorted_cids:
             if len(kept_confs_and_data) >= self.max_conformers:
@@ -236,21 +246,27 @@ class ConformerGenerator(nanome.AsyncPluginInstance):
                 rmsd = AllChem.GetBestRMS(mol, ref_mol, prbId=cid, refId=0)
                 kept_confs_and_data.append((cid, energies[cid], rmsd))
 
+        # sort by energy or rmsd
         sort_key = 1 if self.sort_by == 'minimized energy' else 2
         sorted_conformers = sorted(kept_confs_and_data, key=lambda x: x[sort_key])
+        sorted_conformers.insert(0, (0, ref_energy, 0.0))
 
-        for cid, _, _ in sorted_conformers:
+        # write conformers to sdf, original conformer first
+        writer.write(ref_mol)
+        for cid, _, _ in sorted_conformers[1:]:
             writer.write(mol, cid)
         writer.close()
 
         new_complex = Complex.io.from_sdf(path=output_sdf.name)
         new_complex = new_complex.convert_to_frames()
 
+        # add energy and rmsd to associated data
         for i, new_m in enumerate(new_complex.molecules):
             new_m.associated['conf energy'] = str(round(sorted_conformers[i][1], 3))
             new_m.associated['conf rmsd'] = str(round(sorted_conformers[i][2], 3))
             new_m.associated.update(old_data)
 
+        # add conformers to complex
         new_complex.current_frame = 0
         new_complex.name = complex.name
         new_complex.position = complex.position
