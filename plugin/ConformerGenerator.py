@@ -262,9 +262,9 @@ class ConformerGenerator(nanome.AsyncPluginInstance):
 
         # add energy and rmsd to associated data
         for i, new_m in enumerate(new_complex.molecules):
+            new_m.associated.update(old_data)
             new_m.associated['conf energy'] = str(round(sorted_conformers[i][1], 3))
             new_m.associated['conf rmsd'] = str(round(sorted_conformers[i][2], 3))
-            new_m.associated.update(old_data)
 
         # add conformers to complex
         new_complex.current_frame = 0
