@@ -258,6 +258,7 @@ class ConformerGenerator(nanome.AsyncPluginInstance):
         writer.close()
 
         new_complex = Complex.io.from_sdf(path=output_sdf.name)
+        new_complex.name = f'{complex.name} conf'
         new_complex = new_complex.convert_to_frames()
 
         # add energy and rmsd to associated data
@@ -288,6 +289,8 @@ class ConformerGenerator(nanome.AsyncPluginInstance):
         complexes = await self.request_complex_list()
         complexes[-1].current_frame = 0
         self.update_structures_shallow([complexes[-1]])
+
+        self.send_notification(NotificationTypes.success, 'Conformers generated, check entry list')
 
 
 def main():
