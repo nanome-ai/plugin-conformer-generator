@@ -258,7 +258,6 @@ class ConformerGenerator(nanome.AsyncPluginInstance):
         writer.close()
 
         new_complex = Complex.io.from_sdf(path=output_sdf.name)
-        new_complex.name = f'{complex.name} conf'
         new_complex = new_complex.convert_to_frames()
 
         # add energy and rmsd to associated data
@@ -268,8 +267,8 @@ class ConformerGenerator(nanome.AsyncPluginInstance):
             new_m.associated['conf rmsd'] = str(round(sorted_conformers[i][2], 3))
 
         # add conformers to complex
+        new_complex.name = f'{complex.name} conf'
         new_complex.current_frame = 0
-        new_complex.name = complex.name
         new_complex.position = complex.position
         new_complex.rotation = complex.rotation
         new_complex.locked = self.lock_results
