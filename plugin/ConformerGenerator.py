@@ -230,6 +230,7 @@ class ConformerGenerator(nanome.AsyncPluginInstance):
         mol = Chem.RemoveHs(mol)
         sorted_cids = sorted(cids, key=lambda id: energies[id])
         writer = Chem.SDWriter(output_sdf.name)
+        writer.SetForceV3000(True)
 
         # filter conformers, prioritizing lower energy and ignoring similar conformers
         kept_confs_and_data = []
