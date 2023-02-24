@@ -221,6 +221,7 @@ class ConformerGenerator(nanome.AsyncPluginInstance):
         ref_mol = Chem.RemoveHs(mol)
 
         mol = Chem.AddHs(mol, addCoords=True)
+        Chem.AssignStereochemistryFrom3D(mol)
         cids = AllChem.EmbedMultipleConfs(mol, numConfs=3*self.max_conformers, params=params)
 
         # calc energies of conformers
