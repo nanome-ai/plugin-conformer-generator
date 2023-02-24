@@ -15,6 +15,10 @@ BASE_DIR = os.path.dirname(__file__)
 MENU_PATH = os.path.join(BASE_DIR, 'menu.json')
 MAX_ROTATABLE_BONDS = 20
 
+params = AllChem.ETKDGv3()
+params.enforceChirality = True
+params.useSmallRingTorsions = True
+
 
 class ConformerGenerator(nanome.AsyncPluginInstance):
     def start(self):
@@ -217,7 +221,7 @@ class ConformerGenerator(nanome.AsyncPluginInstance):
         ref_mol = Chem.RemoveHs(mol)
 
         mol = Chem.AddHs(mol, addCoords=True)
-        cids = AllChem.EmbedMultipleConfs(mol, numConfs=3*self.max_conformers)
+        cids = AllChem.EmbedMultipleConfs(mol, numConfs=3*self.max_conformers, params=params)
 
         # calc energies of conformers
         energies = []
