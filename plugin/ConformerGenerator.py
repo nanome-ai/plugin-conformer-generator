@@ -17,6 +17,7 @@ MAX_ROTATABLE_BONDS = 20
 
 
 class ConformerGenerator(nanome.AsyncPluginInstance):
+
     def start(self):
         self.set_plugin_list_button(self.PluginListButtonType.run, 'Open')
 
